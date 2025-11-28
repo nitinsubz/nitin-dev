@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read access to all collections for authenticated and unauthenticated users
+    // In production, you may want to restrict this further
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false; // Only allow writes through Admin SDK (backend)
+    }
+    
+    // Specific rules for each collection (optional, more restrictive)
+    match /timeline/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /career/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    match /shitposts/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
+
+
