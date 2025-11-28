@@ -80,11 +80,14 @@ export const subscribeTimelineItems = (
           ...doc.data()
         } as TimelineItem));
         
-        // Sort by order if available, otherwise keep original order
+        // Sort by dateValue (newest first)
         items.sort((a, b) => {
-          const orderA = a.order ?? 0;
-          const orderB = b.order ?? 0;
-          return orderB - orderA;
+          const dateA = a.dateValue || '';
+          const dateB = b.dateValue || '';
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          return dateB.localeCompare(dateA); // Descending order (newest first)
         });
         
         console.log('Timeline items processed:', items.length);
