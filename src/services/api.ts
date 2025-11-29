@@ -1,4 +1,26 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Auto-detect API URL based on current domain
+const getApiBaseUrl = (): string => {
+  // If VITE_API_URL is set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Get current origin (e.g., https://nsub.dev or http://localhost:5173)
+  const origin = window.location.origin;
+  
+  // If running on localhost, use localhost:3001 for backend
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    return 'http://localhost:3001/api';
+  }
+  
+  // Otherwise, use the same domain as the frontend
+  // Assumes backend is on the same domain (e.g., nsub.dev/api)
+  const apiUrl = `${origin}/api`;
+  console.log('🌐 API URL detected:', apiUrl);
+  return apiUrl;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Helper function for authenticated requests
 const getAuthHeader = (): string => {
