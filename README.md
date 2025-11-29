@@ -51,6 +51,11 @@ npm install
    VITE_API_URL=http://localhost:3001/api
    ```
 
+   **For Production Deployment:**
+   - If your backend is at a different URL (e.g., `https://api.nsub.dev/api`), set `VITE_API_URL` to that URL
+   - If your backend is proxied to `/api` on the same domain, leave `VITE_API_URL` unset (it will auto-detect)
+   - Example: `VITE_API_URL=https://api.nsub.dev/api`
+
 3. Set up Firebase Admin SDK (Backend):
    - In Firebase Console, go to Project Settings → Service Accounts
    - Click "Generate New Private Key" to download your service account key

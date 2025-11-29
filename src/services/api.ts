@@ -1,7 +1,8 @@
 // Auto-detect API URL based on current domain
 const getApiBaseUrl = (): string => {
-  // If VITE_API_URL is set, use it
+  // If VITE_API_URL is set, use it (highest priority)
   if (import.meta.env.VITE_API_URL) {
+    console.log('🌐 Using API URL from env:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
@@ -13,10 +14,29 @@ const getApiBaseUrl = (): string => {
     return 'http://localhost:3001/api';
   }
   
-  // Otherwise, use the same domain as the frontend
-  // Assumes backend is on the same domain (e.g., nsub.dev/api)
+  // For production, try common backend patterns:
+  // 1. Same domain with /api path (if backend is proxied)
+  // 2. api subdomain (e.g., api.nsub.dev)
+  // 3. Different port (if backend is on same server)
+  
+  // Try api subdomain first (common pattern)
+  try {
+    const hostname = window.location.hostname;
+    // Remove www. if present
+    const domain = hostname.replace(/^www\./, '');
+    const apiSubdomain = `https://api.${domain}/api`;
+    console.log('🌐 Trying API subdomain:', apiSubdomain);
+    // Note: We can't test this here, but this is a common pattern
+    // You can set VITE_API_URL if your backend is at a different location
+  } catch (e) {
+    // Ignore
+  }
+  
+  // Default: use same domain with /api path
+  // This assumes your backend is proxied to /api or served from the same domain
   const apiUrl = `${origin}/api`;
   console.log('🌐 API URL detected:', apiUrl);
+  console.log('💡 If backend is at a different URL, set VITE_API_URL in your build environment');
   return apiUrl;
 };
 
@@ -42,7 +62,11 @@ const apiRequest = async <T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    const error = await response.json().catch(() => ({ 
+      error: response.status === 404 
+        ? `API endpoint not found. Make sure your backend server is running and accessible at ${API_BASE_URL}`
+        : `HTTP error! status: ${response.status}`
+    }));
     throw new Error(error.error || `HTTP error! status: ${response.status}`);
   }
 
