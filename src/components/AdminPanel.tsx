@@ -11,7 +11,7 @@ import {
   Terminal
 } from 'lucide-react';
 import { timelineAPI, careerAPI, shitpostsAPI } from '../services/api';
-import type { TimelineItem, CareerItem, Shitpost } from '../firebase/types';
+import type { TimelineItem, CareerItem, Shitpost } from '../supabase/types';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
 
@@ -80,7 +80,7 @@ const AdminPanel: React.FC = () => {
       setShitposts(posts);
     } catch (error) {
       console.error('Error loading data:', error);
-      alert('Error loading data. Make sure the backend server is running and configured correctly.');
+      alert('Error loading data. Make sure your backend server is running and Supabase is configured correctly.');
     }
   };
 
@@ -106,7 +106,7 @@ const AdminPanel: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error adding timeline item:', error);
-      alert('Error adding item');
+      alert('Error adding item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -121,7 +121,7 @@ const AdminPanel: React.FC = () => {
       }
     } catch (error) {
       console.error('Error updating timeline item:', error);
-      alert('Error updating item');
+      alert('Error updating item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -132,7 +132,7 @@ const AdminPanel: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error deleting timeline item:', error);
-      alert('Error deleting item');
+      alert('Error deleting item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -149,7 +149,7 @@ const AdminPanel: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error adding career item:', error);
-      alert('Error adding item');
+      alert('Error adding item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -179,7 +179,7 @@ const AdminPanel: React.FC = () => {
       }
     } catch (error) {
       console.error('Error updating career item:', error);
-      alert('Error updating item');
+      alert('Error updating item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -190,7 +190,7 @@ const AdminPanel: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error deleting career item:', error);
-      alert('Error deleting item');
+      alert('Error deleting item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -206,7 +206,7 @@ const AdminPanel: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error adding shitpost:', error);
-      alert('Error adding item');
+      alert('Error adding item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -221,7 +221,7 @@ const AdminPanel: React.FC = () => {
       }
     } catch (error) {
       console.error('Error updating shitpost:', error);
-      alert('Error updating item');
+      alert('Error updating item. Make sure your backend server is running and configured correctly.');
     }
   };
 
@@ -232,7 +232,7 @@ const AdminPanel: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Error deleting shitpost:', error);
-      alert('Error deleting item');
+      alert('Error deleting item. Make sure your backend server is running and configured correctly.');
     }
   };
 

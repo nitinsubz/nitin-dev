@@ -1,27 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read access to all collections for authenticated and unauthenticated users
-    // In production, you may want to restrict this further
+    // Allow read access to all collections for everyone
     match /{document=**} {
       allow read: if true;
-      allow write: if false; // Only allow writes through Admin SDK (backend)
     }
     
-    // Specific rules for each collection (optional, more restrictive)
+    // Allow writes to all collections (for admin panel)
+    // Note: This allows anyone to write. For better security, consider:
+    // 1. Using Firebase Auth and checking request.auth != null
+    // 2. Adding a custom claim for admin users
+    // 3. Using a simple token-based system
     match /timeline/{itemId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if true; // Allow writes from client (admin panel)
     }
     
     match /career/{itemId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if true; // Allow writes from client (admin panel)
     }
     
     match /shitposts/{itemId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if true; // Allow writes from client (admin panel)
     }
   }
 }

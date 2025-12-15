@@ -13,8 +13,8 @@ import {
   Ghost,
   Settings
 } from 'lucide-react';
-import { useTimelineData, useCareerData, useShitpostsData } from './hooks/useFirebaseData';
-import type { TimelineItem } from './firebase/types';
+import { useTimelineData, useCareerData, useShitpostsData } from './hooks/useSupabaseData';
+import type { TimelineItem } from './supabase/types';
 import AdminPanel from './components/AdminPanel';
 
 /**
@@ -110,7 +110,7 @@ const Timeline: React.FC = () => {
     return (
       <div className="max-w-4xl mx-auto px-6 py-20">
         <div className="text-center text-red-400">
-          Error loading timeline. Please check your Firebase configuration.
+          Error loading timeline. Please check your Supabase configuration.
         </div>
       </div>
     );
@@ -170,7 +170,7 @@ const Career: React.FC = () => {
     return (
       <div className="max-w-3xl mx-auto px-6 py-20">
         <div className="text-center text-red-400">
-          Error loading career data. Please check your Firebase configuration.
+          Error loading career data. Please check your Supabase configuration.
         </div>
       </div>
     );
@@ -248,7 +248,7 @@ const Unfiltered: React.FC = () => {
     return (
       <div className="max-w-5xl mx-auto px-6 py-20">
         <div className="text-center text-red-400">
-          Error loading posts. Please check your Firebase configuration.
+          Error loading posts. Please check your Supabase configuration.
         </div>
       </div>
     );

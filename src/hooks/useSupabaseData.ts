@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
-import { timelineAPI, careerAPI, shitpostsAPI } from '../services/api';
-import type { TimelineItem, CareerItem, Shitpost } from '../firebase/types';
+import { 
+  getTimelineItems, 
+  getCareerItems, 
+  getShitposts,
+  subscribeTimelineItems,
+  subscribeCareerItems,
+  subscribeShitposts
+} from '../supabase/services';
+import type { TimelineItem, CareerItem, Shitpost } from '../supabase/types';
 
 export const useTimelineData = () => {
   const [data, setData] = useState<TimelineItem[]>([]);
@@ -8,21 +15,20 @@ export const useTimelineData = () => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const items = await timelineAPI.getAll();
-        setData(items);
-        setError(null);
-      } catch (err) {
-        setError(err as Error);
-        console.error('Error fetching timeline data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setLoading(true);
+    setError(null);
+    
+    // Set up real-time listener
+    const unsubscribe = subscribeTimelineItems((items) => {
+      setData(items);
+      setError(null);
+      setLoading(false);
+    });
 
-    fetchData();
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return { 
@@ -32,7 +38,7 @@ export const useTimelineData = () => {
     refetch: async () => {
       try {
         setLoading(true);
-        const items = await timelineAPI.getAll();
+        const items = await getTimelineItems();
         setData(items);
         setError(null);
       } catch (err) {
@@ -51,21 +57,20 @@ export const useCareerData = () => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const items = await careerAPI.getAll();
-        setData(items);
-        setError(null);
-      } catch (err) {
-        setError(err as Error);
-        console.error('Error fetching career data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setLoading(true);
+    setError(null);
+    
+    // Set up real-time listener
+    const unsubscribe = subscribeCareerItems((items) => {
+      setData(items);
+      setError(null);
+      setLoading(false);
+    });
 
-    fetchData();
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return { 
@@ -75,7 +80,7 @@ export const useCareerData = () => {
     refetch: async () => {
       try {
         setLoading(true);
-        const items = await careerAPI.getAll();
+        const items = await getCareerItems();
         setData(items);
         setError(null);
       } catch (err) {
@@ -94,21 +99,20 @@ export const useShitpostsData = () => {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const items = await shitpostsAPI.getAll();
-        setData(items);
-        setError(null);
-      } catch (err) {
-        setError(err as Error);
-        console.error('Error fetching shitposts data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setLoading(true);
+    setError(null);
+    
+    // Set up real-time listener
+    const unsubscribe = subscribeShitposts((items) => {
+      setData(items);
+      setError(null);
+      setLoading(false);
+    });
 
-    fetchData();
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return { 
@@ -118,7 +122,7 @@ export const useShitpostsData = () => {
     refetch: async () => {
       try {
         setLoading(true);
-        const items = await shitpostsAPI.getAll();
+        const items = await getShitposts();
         setData(items);
         setError(null);
       } catch (err) {

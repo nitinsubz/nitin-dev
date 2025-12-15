@@ -1,25 +1,48 @@
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join, resolve } from 'path';
 import express from 'express';
 import cors from 'cors';
-import admin from 'firebase-admin';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
+import { createClient } from '@supabase/supabase-js';
 import type { TimelineItem, CareerItem, Shitpost } from './types.js';
 
+// Load .env file from project root (try .env.local first, then .env)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const projectRoot = resolve(__dirname, '..');
+const envLocalPath = resolve(projectRoot, '.env.local');
+const envPath = resolve(projectRoot, '.env');
 
-// Initialize Firebase Admin SDK
-// You'll need to download your service account key from Firebase Console
-// and save it as server/serviceAccountKey.json
-const serviceAccountPath = join(__dirname, 'serviceAccountKey.json');
-const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+// Try .env.local first, then .env
+let result = config({ path: envLocalPath });
+if (result.error) {
+  result = config({ path: envPath });
+  if (result.error) {
+    console.warn('⚠️ Could not load .env file from either .env.local or .env');
+  } else {
+    console.log('✅ Loaded .env file from:', envPath);
+  }
+} else {
+  console.log('✅ Loaded .env.local file from:', envLocalPath);
+}
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+// Initialize Supabase client with service_role key (bypasses RLS)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ Missing Supabase configuration!');
+  console.error('Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment variables.');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
 });
 
-const db = admin.firestore();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -27,7 +50,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Simple authentication middleware (you can enhance this)
+// Simple authentication middleware
 const authenticate = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const authHeader = req.headers.authorization;
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
@@ -39,50 +62,37 @@ const authenticate = (req: express.Request, res: express.Response, next: express
   next();
 };
 
-// Collections
-const TIMELINE_COLLECTION = 'timeline';
-const CAREER_COLLECTION = 'career';
-const SHITPOSTS_COLLECTION = 'shitposts';
+// Collections (table names)
+const TIMELINE_TABLE = 'timeline';
+const CAREER_TABLE = 'career';
+const SHITPOSTS_TABLE = 'shitposts';
 
 // ========== TIMELINE ROUTES ==========
 
 // Get all timeline items
 app.get('/api/timeline', async (req, res) => {
   try {
-    let snapshot;
-    try {
-      snapshot = await db.collection(TIMELINE_COLLECTION)
-        .orderBy('dateValue', 'desc')
-        .get();
-    } catch (error) {
-      // If orderBy fails (no index or missing dateValue field), get all and sort manually
-      console.warn('OrderBy failed, fetching all and sorting manually:', error);
-      snapshot = await db.collection(TIMELINE_COLLECTION).get();
-    }
+    const { data, error } = await supabase
+      .from(TIMELINE_TABLE)
+      .select('*')
+      .order('date_value', { ascending: false });
     
-    const items = snapshot.docs.map(doc => {
-      const data = doc.data() as TimelineItem;
-      // If dateValue is missing, use a default
-      if (!data.dateValue) {
-        data.dateValue = '1900-01-01';
-      }
-      return {
-        id: doc.id,
-        ...data
-      } as TimelineItem;
-    });
+    if (error) throw error;
     
-    // Sort by dateValue (newest first)
-    items.sort((a, b) => {
-      const dateA = a.dateValue || '1900-01-01';
-      const dateB = b.dateValue || '1900-01-01';
-      return dateB.localeCompare(dateA); // Descending order (newest first)
-    });
+    // Map database fields to API response format
+    const items = (data || []).map(item => ({
+      id: item.id,
+      dateValue: item.date_value,
+      title: item.title,
+      content: item.content,
+      tag: item.tag,
+      color: item.color || 'bg-emerald-500',
+    } as TimelineItem));
     
     res.json(items);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching timeline:', error);
-    res.status(500).json({ error: 'Failed to fetch timeline items' });
+    res.status(500).json({ error: 'Failed to fetch timeline items', details: error.message });
   }
 });
 
@@ -90,15 +100,30 @@ app.get('/api/timeline', async (req, res) => {
 app.post('/api/timeline', authenticate, async (req, res) => {
   try {
     const item = req.body as Omit<TimelineItem, 'id'>;
+    
     // Ensure dateValue exists (required for sorting)
     if (!item.dateValue) {
       return res.status(400).json({ error: 'dateValue is required for sorting' });
     }
-    const docRef = await db.collection(TIMELINE_COLLECTION).add(item);
-    res.json({ id: docRef.id, ...item });
-  } catch (error) {
+    
+    const { data, error } = await supabase
+      .from(TIMELINE_TABLE)
+      .insert({
+        date_value: item.dateValue,
+        title: item.title,
+        content: item.content,
+        tag: item.tag,
+        color: item.color || 'bg-emerald-500',
+      })
+      .select('id')
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ id: data.id, ...item });
+  } catch (error: any) {
     console.error('Error adding timeline item:', error);
-    res.status(500).json({ error: 'Failed to add timeline item' });
+    res.status(500).json({ error: 'Failed to add timeline item', details: error.message });
   }
 });
 
@@ -107,11 +132,25 @@ app.put('/api/timeline/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body as Partial<TimelineItem>;
-    await db.collection(TIMELINE_COLLECTION).doc(id).update(updates);
+    
+    const updateData: any = {};
+    if (updates.dateValue !== undefined) updateData.date_value = updates.dateValue;
+    if (updates.title !== undefined) updateData.title = updates.title;
+    if (updates.content !== undefined) updateData.content = updates.content;
+    if (updates.tag !== undefined) updateData.tag = updates.tag;
+    if (updates.color !== undefined) updateData.color = updates.color;
+    
+    const { error } = await supabase
+      .from(TIMELINE_TABLE)
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) throw error;
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating timeline item:', error);
-    res.status(500).json({ error: 'Failed to update timeline item' });
+    res.status(500).json({ error: 'Failed to update timeline item', details: error.message });
   }
 });
 
@@ -119,11 +158,18 @@ app.put('/api/timeline/:id', authenticate, async (req, res) => {
 app.delete('/api/timeline/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    await db.collection(TIMELINE_COLLECTION).doc(id).delete();
+    
+    const { error } = await supabase
+      .from(TIMELINE_TABLE)
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting timeline item:', error);
-    res.status(500).json({ error: 'Failed to delete timeline item' });
+    res.status(500).json({ error: 'Failed to delete timeline item', details: error.message });
   }
 });
 
@@ -132,31 +178,27 @@ app.delete('/api/timeline/:id', authenticate, async (req, res) => {
 // Get all career items
 app.get('/api/career', async (req, res) => {
   try {
-    let snapshot;
-    try {
-      snapshot = await db.collection(CAREER_COLLECTION)
-        .orderBy('order', 'desc')
-        .get();
-    } catch (error) {
-      console.warn('OrderBy failed, fetching all and sorting manually:', error);
-      snapshot = await db.collection(CAREER_COLLECTION).get();
-    }
+    const { data, error } = await supabase
+      .from(CAREER_TABLE)
+      .select('*')
+      .order('order', { ascending: false });
     
-    const items = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    if (error) throw error;
+    
+    const items = (data || []).map(item => ({
+      id: item.id,
+      role: item.role,
+      company: item.company,
+      period: item.period,
+      description: item.description,
+      stack: item.stack || [],
+      order: item.order || 0,
     } as CareerItem));
     
-    items.sort((a, b) => {
-      const orderA = a.order ?? 0;
-      const orderB = b.order ?? 0;
-      return orderB - orderA;
-    });
-    
     res.json(items);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching career:', error);
-    res.status(500).json({ error: 'Failed to fetch career items' });
+    res.status(500).json({ error: 'Failed to fetch career items', details: error.message });
   }
 });
 
@@ -164,15 +206,26 @@ app.get('/api/career', async (req, res) => {
 app.post('/api/career', authenticate, async (req, res) => {
   try {
     const item = req.body as Omit<CareerItem, 'id'>;
-    const itemWithOrder = {
-      ...item,
-      order: item.order ?? 0
-    };
-    const docRef = await db.collection(CAREER_COLLECTION).add(itemWithOrder);
-    res.json({ id: docRef.id, ...itemWithOrder });
-  } catch (error) {
+    
+    const { data, error } = await supabase
+      .from(CAREER_TABLE)
+      .insert({
+        role: item.role,
+        company: item.company,
+        period: item.period,
+        description: item.description,
+        stack: item.stack || [],
+        order: item.order ?? 0,
+      })
+      .select('id')
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ id: data.id, ...item });
+  } catch (error: any) {
     console.error('Error adding career item:', error);
-    res.status(500).json({ error: 'Failed to add career item' });
+    res.status(500).json({ error: 'Failed to add career item', details: error.message });
   }
 });
 
@@ -181,11 +234,26 @@ app.put('/api/career/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body as Partial<CareerItem>;
-    await db.collection(CAREER_COLLECTION).doc(id).update(updates);
+    
+    const updateData: any = {};
+    if (updates.role !== undefined) updateData.role = updates.role;
+    if (updates.company !== undefined) updateData.company = updates.company;
+    if (updates.period !== undefined) updateData.period = updates.period;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.stack !== undefined) updateData.stack = updates.stack;
+    if (updates.order !== undefined) updateData.order = updates.order;
+    
+    const { error } = await supabase
+      .from(CAREER_TABLE)
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) throw error;
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating career item:', error);
-    res.status(500).json({ error: 'Failed to update career item' });
+    res.status(500).json({ error: 'Failed to update career item', details: error.message });
   }
 });
 
@@ -193,11 +261,18 @@ app.put('/api/career/:id', authenticate, async (req, res) => {
 app.delete('/api/career/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    await db.collection(CAREER_COLLECTION).doc(id).delete();
+    
+    const { error } = await supabase
+      .from(CAREER_TABLE)
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting career item:', error);
-    res.status(500).json({ error: 'Failed to delete career item' });
+    res.status(500).json({ error: 'Failed to delete career item', details: error.message });
   }
 });
 
@@ -206,31 +281,26 @@ app.delete('/api/career/:id', authenticate, async (req, res) => {
 // Get all shitposts
 app.get('/api/shitposts', async (req, res) => {
   try {
-    let snapshot;
-    try {
-      snapshot = await db.collection(SHITPOSTS_COLLECTION)
-        .orderBy('order', 'desc')
-        .get();
-    } catch (error) {
-      console.warn('OrderBy failed, fetching all and sorting manually:', error);
-      snapshot = await db.collection(SHITPOSTS_COLLECTION).get();
-    }
+    const { data, error } = await supabase
+      .from(SHITPOSTS_TABLE)
+      .select('*')
+      .order('order', { ascending: false });
     
-    const items = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
+    if (error) throw error;
+    
+    const items = (data || []).map(item => ({
+      id: item.id,
+      content: item.content,
+      likes: item.likes || '0',
+      date: item.date,
+      subtext: item.subtext,
+      order: item.order || 0,
     } as Shitpost));
     
-    items.sort((a, b) => {
-      const orderA = a.order ?? 0;
-      const orderB = b.order ?? 0;
-      return orderB - orderA;
-    });
-    
     res.json(items);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching shitposts:', error);
-    res.status(500).json({ error: 'Failed to fetch shitposts' });
+    res.status(500).json({ error: 'Failed to fetch shitposts', details: error.message });
   }
 });
 
@@ -238,15 +308,25 @@ app.get('/api/shitposts', async (req, res) => {
 app.post('/api/shitposts', authenticate, async (req, res) => {
   try {
     const item = req.body as Omit<Shitpost, 'id'>;
-    const itemWithOrder = {
-      ...item,
-      order: item.order ?? 0
-    };
-    const docRef = await db.collection(SHITPOSTS_COLLECTION).add(itemWithOrder);
-    res.json({ id: docRef.id, ...itemWithOrder });
-  } catch (error) {
+    
+    const { data, error } = await supabase
+      .from(SHITPOSTS_TABLE)
+      .insert({
+        content: item.content,
+        likes: item.likes || '0',
+        date: item.date,
+        subtext: item.subtext,
+        order: item.order ?? 0,
+      })
+      .select('id')
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ id: data.id, ...item });
+  } catch (error: any) {
     console.error('Error adding shitpost:', error);
-    res.status(500).json({ error: 'Failed to add shitpost' });
+    res.status(500).json({ error: 'Failed to add shitpost', details: error.message });
   }
 });
 
@@ -255,11 +335,25 @@ app.put('/api/shitposts/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body as Partial<Shitpost>;
-    await db.collection(SHITPOSTS_COLLECTION).doc(id).update(updates);
+    
+    const updateData: any = {};
+    if (updates.content !== undefined) updateData.content = updates.content;
+    if (updates.likes !== undefined) updateData.likes = updates.likes;
+    if (updates.date !== undefined) updateData.date = updates.date;
+    if (updates.subtext !== undefined) updateData.subtext = updates.subtext;
+    if (updates.order !== undefined) updateData.order = updates.order;
+    
+    const { error } = await supabase
+      .from(SHITPOSTS_TABLE)
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) throw error;
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating shitpost:', error);
-    res.status(500).json({ error: 'Failed to update shitpost' });
+    res.status(500).json({ error: 'Failed to update shitpost', details: error.message });
   }
 });
 
@@ -267,21 +361,28 @@ app.put('/api/shitposts/:id', authenticate, async (req, res) => {
 app.delete('/api/shitposts/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    await db.collection(SHITPOSTS_COLLECTION).doc(id).delete();
+    
+    const { error } = await supabase
+      .from(SHITPOSTS_TABLE)
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting shitpost:', error);
-    res.status(500).json({ error: 'Failed to delete shitpost' });
+    res.status(500).json({ error: 'Failed to delete shitpost', details: error.message });
   }
 });
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', database: 'supabase' });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📝 API endpoints available at http://localhost:${PORT}/api`);
+  console.log(`🔷 Using Supabase: ${supabaseUrl}`);
 });
-

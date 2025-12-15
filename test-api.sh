@@ -46,3 +46,5 @@ echo ""
 echo "If all GET requests return data (or empty arrays), your API is working!"
 echo "If you see connection errors, the backend is not accessible at ${API_URL}"
 
+
+

@@ -48,26 +48,16 @@ npm install
    VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
    VITE_FIREBASE_APP_ID=your-app-id
    VITE_ADMIN_PASSWORD=your-secure-password
-   VITE_API_URL=http://localhost:3001/api
    ```
 
-   **For Production Deployment:**
-   - If your backend is at a different URL (e.g., `https://api.nsub.dev/api`), set `VITE_API_URL` to that URL
-   - If your backend is proxied to `/api` on the same domain, leave `VITE_API_URL` unset (it will auto-detect)
-   - Example: `VITE_API_URL=https://api.nsub.dev/api`
-
-3. Set up Firebase Admin SDK (Backend):
-   - In Firebase Console, go to Project Settings → Service Accounts
-   - Click "Generate New Private Key" to download your service account key
-   - Save the downloaded JSON file as `server/serviceAccountKey.json`
-   - **Important**: 
-     - This file contains sensitive credentials and is already in `.gitignore`
-     - See `server/serviceAccountKey.json.example` for the expected format
-     - Never commit this file to version control
-   - Set the admin password in your environment (or use default):
-   ```env
-   ADMIN_PASSWORD=your-secure-password
-   ```
+3. Set up Firestore Security Rules:
+   - In Firebase Console, go to Firestore Database → Rules
+   - Copy the rules from `firestore.rules` file in this project
+   - Paste and publish the rules
+   - **Important**: The rules allow public reads and writes. For better security, consider:
+     - Using Firebase Auth for admin authentication
+     - Adding custom claims for admin users
+     - Restricting writes to authenticated users only
 
 4. Set up Firestore Collections:
    - In Firebase Console, go to Firestore Database
@@ -96,7 +86,7 @@ npm run dev
 ```
 The app will be available at `http://localhost:5173`
 
-**Note**: The frontend needs the backend running for admin operations to work.
+**Note**: The app uses Firebase Client SDK directly - no backend server needed! Perfect for Vercel, Netlify, and other static hosting.
 
 ### Build
 
@@ -127,15 +117,9 @@ nitin-dev/
 │   ├── firebase/
 │   │   ├── config.ts        # Firebase client SDK configuration
 │   │   ├── types.ts         # TypeScript types
-│   │   └── services.ts     # Firestore read operations (client)
-│   ├── services/
-│   │   └── api.ts           # Backend API client
+│   │   └── services.ts     # Firestore CRUD operations (client SDK)
 │   └── hooks/
 │       └── useFirebaseData.ts  # React hooks for data fetching
-├── server/
-│   ├── index.ts             # Express backend server
-│   ├── tsconfig.json        # Server TypeScript config
-│   └── serviceAccountKey.json  # Firebase Admin SDK key (not in git)
 ├── index.html               # HTML template
 ├── package.json             # Dependencies
 ├── vite.config.ts           # Vite configuration
@@ -152,11 +136,11 @@ The admin panel allows you to:
 - Add, edit, and delete timeline items
 - Add, edit, and delete career items
 - Add, edit, and delete unfiltered posts
-- All changes are saved to Firebase via the backend API using Firebase Admin SDK
+- All changes are saved directly to Firebase using the Client SDK
 
 **Default Admin Password**: `admin123` (change via `VITE_ADMIN_PASSWORD` in `.env`)
 
-**Important**: The admin panel requires the backend server to be running. All write operations go through the backend API which uses Firebase Admin SDK for secure, server-side operations.
+**Note**: The admin panel uses client-side password protection. For production, consider implementing Firebase Auth with custom claims for better security.
 
 ## Customization
 
