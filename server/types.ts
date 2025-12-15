@@ -1,6 +1,6 @@
 export interface TimelineItem {
   id?: string;
-  dateValue: string; // ISO date string for sorting (e.g., "2025-11-01")
+  dateValue: string; // ISO date str for sorting (e.g., "2025-11-01")
   title: string;
   content: string;
   tag: string;
