@@ -153,7 +153,8 @@ const AdminPanel: React.FC = () => {
           content: item.content,
           tag: item.tag,
           color: item.color,
-          markdownContent: item.markdownContent ?? null, // Explicitly include, even if undefined
+          // Send a string (never null) to satisfy TS types; empty string clears content
+          markdownContent: item.markdownContent ?? '',
         };
         
         console.log('Updating timeline item:', {
