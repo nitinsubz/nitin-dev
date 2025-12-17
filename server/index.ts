@@ -85,6 +85,7 @@ app.get('/api/timeline', async (req, res) => {
       dateValue: item.date_value,
       title: item.title,
       content: item.content,
+      markdownContent: item.markdown_content ?? undefined,
       tag: item.tag,
       color: item.color || 'bg-emerald-500',
     } as TimelineItem));
@@ -112,6 +113,7 @@ app.post('/api/timeline', authenticate, async (req, res) => {
         date_value: item.dateValue,
         title: item.title,
         content: item.content,
+        markdown_content: item.markdownContent ?? null,
         tag: item.tag,
         color: item.color || 'bg-emerald-500',
       })
@@ -139,6 +141,11 @@ app.put('/api/timeline/:id', authenticate, async (req, res) => {
     if (updates.content !== undefined) updateData.content = updates.content;
     if (updates.tag !== undefined) updateData.tag = updates.tag;
     if (updates.color !== undefined) updateData.color = updates.color;
+    if ('markdownContent' in updates) {
+      updateData.markdown_content = updates.markdownContent ?? null;
+    }
+    
+    console.log('Server updating timeline:', { id, updateData });
     
     const { error } = await supabase
       .from(TIMELINE_TABLE)

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Briefcase, 
   Sparkles, 
@@ -16,6 +17,7 @@ import {
 import { useTimelineData, useCareerData, useShitpostsData } from './hooks/useSupabaseData';
 import type { TimelineItem } from './supabase/types';
 import AdminPanel from './components/AdminPanel';
+import BlogPost from './components/BlogPost';
 
 /**
  * COMPONENTS
@@ -57,6 +59,14 @@ interface TimelineItemProps {
 const TimelineItemComponent: React.FC<TimelineItemProps> = ({ data, index }) => {
   const ref = useRef<HTMLDivElement>(null);
   const onScreen = useOnScreen(ref, "-100px");
+  const navigate = useNavigate();
+  const hasMarkdown = data.markdownContent && data.markdownContent.trim().length > 0;
+
+  const handleClick = () => {
+    if (hasMarkdown && data.id) {
+      navigate(`/post/${data.id}`);
+    }
+  };
 
   return (
     <div 
@@ -77,7 +87,12 @@ const TimelineItemComponent: React.FC<TimelineItemProps> = ({ data, index }) => 
 
       {/* Content Card */}
       <div className={`${index % 2 === 0 ? "md:order-2" : "md:order-1 md:text-right"}`}>
-        <div className={`bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-6 rounded-2xl hover:border-zinc-600 transition-colors group`}>
+        <div 
+          onClick={handleClick}
+          className={`bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-6 rounded-2xl transition-colors group ${
+            hasMarkdown ? 'hover:border-zinc-600 cursor-pointer hover:bg-zinc-900/70' : ''
+          }`}
+        >
            <div className={`flex items-center gap-3 mb-2 ${index % 2 !== 0 ? "md:justify-end" : ""}`}>
               <div className={`w-2 h-2 rounded-full ${data.color}`}></div>
               <h3 className="text-xl font-bold text-zinc-100">{data.title}</h3>
@@ -85,8 +100,15 @@ const TimelineItemComponent: React.FC<TimelineItemProps> = ({ data, index }) => 
            <p className="text-zinc-400 leading-relaxed font-light">
              {data.content}
            </p>
-           <div className={`mt-4 text-xs font-bold uppercase tracking-wider text-zinc-600 ${index % 2 !== 0 ? "md:flex md:justify-end" : ""}`}>
-             #{data.tag}
+           <div className={`mt-4 flex items-center justify-between ${index % 2 !== 0 ? "md:flex-row-reverse" : ""}`}>
+             <span className="text-xs font-bold uppercase tracking-wider text-zinc-600">
+               #{data.tag}
+             </span>
+             {hasMarkdown && (
+               <span className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">
+                 Read more →
+               </span>
+             )}
            </div>
         </div>
       </div>
@@ -306,131 +328,148 @@ const Unfiltered: React.FC = () => {
   );
 };
 
-// 5. MAIN APP LAYOUT
-export default function App() {
-  const [activeTab, setActiveTab] = useState<'timeline' | 'career' | 'unfiltered' | 'admin'>('timeline');
+// 5. NAVIGATION COMPONENT
+const Navigation: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Smooth scroll to top on tab change
-  useEffect(() => {
-    if (activeTab !== 'admin') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    setMobileMenuOpen(false);
-  }, [activeTab]);
-
   const navItems = [
-    { id: 'timeline' as const, label: 'Timeline', icon: <Calendar size={18} /> },
-    { id: 'career' as const, label: 'Career', icon: <Briefcase size={18} /> },
-    { id: 'unfiltered' as const, label: 'Unfiltered', icon: <Terminal size={18} /> },
+    { path: '/', label: 'Timeline', icon: <Calendar size={18} /> },
+    { path: '/career', label: 'Career', icon: <Briefcase size={18} /> },
+    { path: '/unfiltered', label: 'Unfiltered', icon: <Terminal size={18} /> },
   ];
 
-  // Show admin panel if admin tab is active
-  if (activeTab === 'admin') {
-    return <AdminPanel />;
-  }
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/' || location.pathname.startsWith('/post/');
+    }
+    return location.pathname === path;
+  };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans selection:bg-white selection:text-black">
-      
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div 
-            className="font-bold text-xl tracking-tighter text-white cursor-pointer hover:text-zinc-300 transition-colors"
-            onClick={() => setActiveTab('timeline')}
-          >
-            nitin.dev
-          </div>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div 
+          className="font-bold text-xl tracking-tighter text-white cursor-pointer hover:text-zinc-300 transition-colors"
+          onClick={() => navigate('/')}
+        >
+          nitin.dev
+        </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-8">
+          {navItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => {
+                navigate(item.path);
+                setMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-2 text-sm font-medium transition-all duration-300 ${
+                isActive(item.path)
+                  ? 'text-white scale-105' 
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Social Icons Desktop */}
+        <div className="hidden md:flex items-center gap-4 border-l border-zinc-800 pl-6 ml-2">
+           <Github size={18} className="text-zinc-500 hover:text-white cursor-pointer transition-colors" />
+           <Linkedin size={18} className="text-zinc-500 hover:text-white cursor-pointer transition-colors" />
+           <button
+             onClick={() => navigate('/admin')}
+             className="text-zinc-500 hover:text-white transition-colors"
+             title="Admin Panel"
+           >
+             <Settings size={18} />
+           </button>
+        </div>
+
+        {/* Mobile Menu Toggle */}
+        <button 
+          className="md:hidden text-zinc-300"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
+          {mobileMenuOpen ? <X /> : <Menu />}
+        </button>
+      </div>
+
+      {/* Mobile Nav Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-zinc-800 bg-zinc-950 absolute w-full pb-6">
+           <div className="flex flex-col p-4 space-y-2">
             {navItems.map((item) => (
               <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-2 text-sm font-medium transition-all duration-300 ${
-                  activeTab === item.id 
-                    ? 'text-white scale-105' 
-                    : 'text-zinc-500 hover:text-zinc-300'
+                key={item.path}
+                onClick={() => {
+                  navigate(item.path);
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-3 p-4 rounded-lg text-lg font-medium ${
+                  isActive(item.path)
+                    ? 'bg-zinc-900 text-white' 
+                    : 'text-zinc-500'
                 }`}
               >
                 {item.icon}
                 {item.label}
               </button>
             ))}
-          </div>
-
-          {/* Social Icons Desktop */}
-          <div className="hidden md:flex items-center gap-4 border-l border-zinc-800 pl-6 ml-2">
-             <Github size={18} className="text-zinc-500 hover:text-white cursor-pointer transition-colors" />
-             <Linkedin size={18} className="text-zinc-500 hover:text-white cursor-pointer transition-colors" />
-             <button
-               onClick={() => setActiveTab('admin')}
-               className="text-zinc-500 hover:text-white transition-colors"
-               title="Admin Panel"
-             >
-               <Settings size={18} />
-             </button>
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden text-zinc-300"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X /> : <Menu />}
-          </button>
+            <button
+              onClick={() => {
+                navigate('/admin');
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 p-4 rounded-lg text-lg font-medium text-zinc-500"
+            >
+              <Settings size={18} />
+              Admin
+            </button>
+           </div>
         </div>
+      )}
+    </nav>
+  );
+};
 
-        {/* Mobile Nav Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-zinc-800 bg-zinc-950 absolute w-full pb-6">
-             <div className="flex flex-col p-4 space-y-2">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-3 p-4 rounded-lg text-lg font-medium ${
-                    activeTab === item.id 
-                      ? 'bg-zinc-900 text-white' 
-                      : 'text-zinc-500'
-                  }`}
-                >
-                  {item.icon}
-                  {item.label}
-                </button>
-              ))}
-              <button
-                onClick={() => setActiveTab('admin')}
-                className="flex items-center gap-3 p-4 rounded-lg text-lg font-medium text-zinc-500"
-              >
-                <Settings size={18} />
-                Admin
-              </button>
-             </div>
-          </div>
-        )}
-      </nav>
+// 6. MAIN APP LAYOUT
+export default function App() {
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-200 font-sans selection:bg-white selection:text-black">
+      <Navigation />
+      
+      <Routes>
+        <Route path="/" element={<Timeline />} />
+        <Route path="/career" element={<Career />} />
+        <Route path="/unfiltered" element={<Unfiltered />} />
+        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/post/:id" element={<BlogPost />} />
+      </Routes>
 
-      {/* Main Content Area */}
-      <main className="pt-16 min-h-screen">
-        <div className={`transition-opacity duration-500 ${activeTab === 'timeline' ? 'block' : 'hidden'}`}>
-           <Timeline />
-        </div>
-        <div className={`transition-opacity duration-500 ${activeTab === 'career' ? 'block' : 'hidden'}`}>
-           <Career />
-        </div>
-        <div className={`transition-opacity duration-500 ${activeTab === 'unfiltered' ? 'block' : 'hidden'}`}>
-           <Unfiltered />
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-900 py-12 text-center text-zinc-600 text-sm">
-        <p>&copy; 2025 Personal Website. Built with React & Tailwind.</p>
-      </footer>
-
+      {/* Footer - only show on main pages */}
+      <Routes>
+        <Route path="/" element={
+          <footer className="border-t border-zinc-900 py-12 text-center text-zinc-600 text-sm">
+            <p>&copy; 2025 Personal Website. Built with React & Tailwind.</p>
+          </footer>
+        } />
+        <Route path="/career" element={
+          <footer className="border-t border-zinc-900 py-12 text-center text-zinc-600 text-sm">
+            <p>&copy; 2025 Personal Website. Built with React & Tailwind.</p>
+          </footer>
+        } />
+        <Route path="/unfiltered" element={
+          <footer className="border-t border-zinc-900 py-12 text-center text-zinc-600 text-sm">
+            <p>&copy; 2025 Personal Website. Built with React & Tailwind.</p>
+          </footer>
+        } />
+      </Routes>
     </div>
   );
 }

@@ -34,6 +34,7 @@ const AdminPanel: React.FC = () => {
     dateValue: '',
     title: '',
     content: '',
+    markdownContent: '',
     tag: '',
     color: 'bg-emerald-500'
   });
@@ -75,6 +76,20 @@ const AdminPanel: React.FC = () => {
         careerAPI.getAll(),
         shitpostsAPI.getAll()
       ]);
+      console.log('Loaded timeline items from API:', timeline.length, 'items');
+      console.log('Timeline items summary:', timeline.map(item => ({
+        id: item.id,
+        title: item.title,
+        hasMarkdown: !!item.markdownContent,
+        markdownLength: item.markdownContent?.length || 0,
+        markdownValue: item.markdownContent ? item.markdownContent.substring(0, 50) + '...' : 'null/undefined',
+        allKeys: Object.keys(item)
+      })));
+      if (timeline.length > 0) {
+        console.log('Full first item from API:', JSON.stringify(timeline[0], null, 2));
+        console.log('First item markdownContent type:', typeof timeline[0].markdownContent);
+        console.log('First item markdownContent value:', timeline[0].markdownContent);
+      }
       setTimelineItems(timeline);
       setCareerItems(career);
       setShitposts(posts);
@@ -101,12 +116,29 @@ const AdminPanel: React.FC = () => {
       return;
     }
     try {
-      await timelineAPI.create(newTimelineItem as Omit<TimelineItem, 'id'>);
-      setNewTimelineItem({ dateValue: '', title: '', content: '', tag: '', color: 'bg-emerald-500' });
+      const itemToCreate: Omit<TimelineItem, 'id'> = {
+        dateValue: newTimelineItem.dateValue!,
+        title: newTimelineItem.title!,
+        content: newTimelineItem.content!,
+        tag: newTimelineItem.tag || '',
+        color: newTimelineItem.color || 'bg-emerald-500',
+        markdownContent: newTimelineItem.markdownContent || undefined, // Explicitly include
+      };
+      
+      console.log('Creating timeline item:', {
+        item: itemToCreate,
+        hasMarkdown: !!itemToCreate.markdownContent,
+        markdownLength: itemToCreate.markdownContent?.length || 0,
+        markdownValue: itemToCreate.markdownContent
+      });
+      
+      await timelineAPI.create(itemToCreate);
+      setNewTimelineItem({ dateValue: '', title: '', content: '', markdownContent: '', tag: '', color: 'bg-emerald-500' });
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding timeline item:', error);
-      alert('Error adding item. Make sure your backend server is running and configured correctly.');
+      console.error('Error details:', error.message, error.stack);
+      alert(`Error adding item: ${error.message || 'Unknown error'}. Check console for details.`);
     }
   };
 
@@ -114,14 +146,34 @@ const AdminPanel: React.FC = () => {
     try {
       const item = timelineItems.find(i => i.id === id);
       if (item) {
-        const { id: _, ...updates } = item;
-        await timelineAPI.update(id, updates);
+        // Build update payload explicitly to ensure all fields are included
+        const updatePayload: Partial<TimelineItem> = {
+          dateValue: item.dateValue,
+          title: item.title,
+          content: item.content,
+          tag: item.tag,
+          color: item.color,
+          markdownContent: item.markdownContent ?? null, // Explicitly include, even if undefined
+        };
+        
+        console.log('Updating timeline item:', {
+          id,
+          originalItem: item,
+          updatePayload,
+          hasMarkdown: updatePayload.markdownContent !== null && updatePayload.markdownContent !== undefined,
+          markdownLength: updatePayload.markdownContent?.length || 0,
+          markdownValue: updatePayload.markdownContent,
+          payloadString: JSON.stringify(updatePayload)
+        });
+        
+        await timelineAPI.update(id, updatePayload);
         setEditingTimeline(null);
         loadData();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating timeline item:', error);
-      alert('Error updating item. Make sure your backend server is running and configured correctly.');
+      console.error('Error details:', error.message, error.stack);
+      alert(`Error updating item: ${error.message || 'Unknown error'}. Check console for details.`);
     }
   };
 
@@ -332,11 +384,18 @@ const AdminPanel: React.FC = () => {
                   className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
                 />
                 <textarea
-                  placeholder="Content"
+                  placeholder="Content (Short preview/excerpt)"
                   value={newTimelineItem.content || ''}
                   onChange={(e) => setNewTimelineItem({ ...newTimelineItem, content: e.target.value })}
                   className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white md:col-span-2"
                   rows={3}
+                />
+                <textarea
+                  placeholder="Markdown Content (Full blog post - supports markdown)"
+                  value={newTimelineItem.markdownContent ?? ''}
+                  onChange={(e) => setNewTimelineItem({ ...newTimelineItem, markdownContent: e.target.value })}
+                  className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white md:col-span-2 font-mono text-sm"
+                  rows={10}
                 />
                 <input
                   type="text"
@@ -405,6 +464,7 @@ const AdminPanel: React.FC = () => {
                         className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
                       />
                       <textarea
+                        placeholder="Content (Short preview/excerpt)"
                         value={item.content}
                         onChange={(e) => {
                           const updated = timelineItems.map(i => 
@@ -415,6 +475,43 @@ const AdminPanel: React.FC = () => {
                         className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
                         rows={3}
                       />
+                      <div>
+                        <label className="block text-sm text-zinc-400 mb-2">
+                          Markdown Content (Full blog post)
+                          {item.markdownContent !== undefined && item.markdownContent !== null && (
+                            <span className="ml-2 text-emerald-400 text-xs">
+                              ({item.markdownContent.length} chars loaded)
+                            </span>
+                          )}
+                        </label>
+                        <textarea
+                          placeholder="Write your full blog post in markdown..."
+                          value={item.markdownContent ?? ''}
+                          onChange={(e) => {
+                            console.log('Markdown changed for item', item.id, 'new length:', e.target.value.length);
+                            const updated = timelineItems.map(i => 
+                              i.id === item.id ? { ...i, markdownContent: e.target.value } : i
+                            );
+                            setTimelineItems(updated);
+                          }}
+                          className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white font-mono text-sm"
+                          rows={12}
+                        />
+                        <div className="mt-1 text-xs">
+                          {item.markdownContent !== undefined && item.markdownContent !== null ? (
+                            <p className="text-emerald-400">
+                              ✓ Markdown content loaded ({item.markdownContent.length} characters)
+                            </p>
+                          ) : (
+                            <p className="text-zinc-500">
+                              No markdown content (value: {String(item.markdownContent)})
+                            </p>
+                          )}
+                          <p className="text-zinc-500 mt-1">
+                            Supports markdown: **bold**, *italic*, links, code blocks, lists, etc.
+                          </p>
+                        </div>
+                      </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleUpdateTimeline(item.id!)}
@@ -441,9 +538,19 @@ const AdminPanel: React.FC = () => {
                           </span>
                           <span className={`w-2 h-2 rounded-full ${item.color}`}></span>
                           <h3 className="text-lg font-bold text-white">{item.title}</h3>
+                          {item.markdownContent && (
+                            <span className="px-2 py-1 bg-emerald-900/30 text-emerald-400 text-xs rounded border border-emerald-800">
+                              Has Markdown
+                            </span>
+                          )}
                         </div>
                         <p className="text-zinc-400 mb-2">{item.content}</p>
                         <span className="text-xs text-zinc-600">#{item.tag}</span>
+                        {item.markdownContent && (
+                          <p className="text-xs text-zinc-500 mt-2">
+                            Markdown: {item.markdownContent.length} characters
+                          </p>
+                        )}
                       </div>
                       <div className="flex gap-2 ml-4">
                         <button

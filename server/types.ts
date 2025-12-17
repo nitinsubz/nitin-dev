@@ -2,7 +2,8 @@ export interface TimelineItem {
   id?: string;
   dateValue: string; // ISO date str for sorting (e.g., "2025-11-01")
   title: string;
-  content: string;
+  content: string; // Short preview/excerpt
+  markdownContent?: string; // Full markdown content for blog post
   tag: string;
   color: string;
 }

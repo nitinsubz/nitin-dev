@@ -54,14 +54,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (updates.content !== undefined) updateData.content = updates.content;
       if (updates.tag !== undefined) updateData.tag = updates.tag;
       if (updates.color !== undefined) updateData.color = updates.color;
+      
+      // Always include markdown_content if it's in the updates (even if empty string)
+      if ('markdownContent' in updates) {
+        updateData.markdown_content = updates.markdownContent ?? null; // Use nullish coalescing
+      }
 
-      const { error } = await supabase
+      console.log('Updating timeline item:', {
+        id,
+        receivedUpdates: updates,
+        hasMarkdown: updates.markdownContent !== undefined,
+        markdownValue: updates.markdownContent,
+        markdownLength: updates.markdownContent?.length || 0,
+        updateData,
+        updateDataKeys: Object.keys(updateData)
+      });
+
+      const { data: updateResult, error } = await supabase
         .from(TIMELINE_TABLE)
         .update(updateData)
-        .eq('id', id);
+        .eq('id', id)
+        .select(); // Select to verify what was updated
       
-      if (error) throw error;
-      return res.json({ success: true });
+      if (error) {
+        console.error('Supabase update error:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        throw error;
+      }
+      
+      console.log('Update successful, result:', updateResult);
+      return res.json({ success: true, updated: updateResult });
     }
 
     if (req.method === 'DELETE') {

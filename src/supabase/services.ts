@@ -56,6 +56,7 @@ export const getTimelineItems = async (): Promise<TimelineItem[]> => {
       dateValue: item.date_value,
       title: item.title,
       content: item.content,
+      markdownContent: item.markdown_content ?? undefined, // Use nullish coalescing to preserve null
       tag: item.tag,
       color: item.color || 'bg-emerald-500',
     } as TimelineItem));
@@ -138,6 +139,7 @@ export const addTimelineItem = async (item: Omit<TimelineItem, 'id'>): Promise<s
       date_value: item.dateValue,
       title: item.title,
       content: item.content,
+      markdown_content: item.markdownContent || null,
       tag: item.tag,
       color: item.color,
     })
@@ -153,6 +155,7 @@ export const updateTimelineItem = async (id: string, item: Partial<TimelineItem>
   if (item.dateValue !== undefined) updates.date_value = item.dateValue;
   if (item.title !== undefined) updates.title = item.title;
   if (item.content !== undefined) updates.content = item.content;
+  if (item.markdownContent !== undefined) updates.markdown_content = item.markdownContent || null;
   if (item.tag !== undefined) updates.tag = item.tag;
   if (item.color !== undefined) updates.color = item.color;
   

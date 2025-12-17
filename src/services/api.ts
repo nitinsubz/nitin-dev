@@ -76,16 +76,33 @@ const apiRequest = async <T>(
 // Timeline API
 export const timelineAPI = {
   getAll: () => apiRequest<any[]>('/timeline'),
-  create: (item: any) => apiRequest<any>('/timeline', {
-    method: 'POST',
-    headers: { Authorization: getAuthHeader() },
-    body: JSON.stringify(item),
-  }),
-  update: (id: string, item: any) => apiRequest<any>(`/timeline/${id}`, {
-    method: 'PUT',
-    headers: { Authorization: getAuthHeader() },
-    body: JSON.stringify(item),
-  }),
+  create: (item: any) => {
+    console.log('timelineAPI.create called with:', {
+      item,
+      hasMarkdown: !!item.markdownContent,
+      markdownLength: item.markdownContent?.length || 0,
+      stringified: JSON.stringify(item)
+    });
+    return apiRequest<any>('/timeline', {
+      method: 'POST',
+      headers: { Authorization: getAuthHeader() },
+      body: JSON.stringify(item),
+    });
+  },
+  update: (id: string, item: any) => {
+    console.log('timelineAPI.update called with:', {
+      id,
+      item,
+      hasMarkdown: !!item.markdownContent,
+      markdownLength: item.markdownContent?.length || 0,
+      stringified: JSON.stringify(item)
+    });
+    return apiRequest<any>(`/timeline/${id}`, {
+      method: 'PUT',
+      headers: { Authorization: getAuthHeader() },
+      body: JSON.stringify(item),
+    });
+  },
   delete: (id: string) => apiRequest<any>(`/timeline/${id}`, {
     method: 'DELETE',
     headers: { Authorization: getAuthHeader() },
