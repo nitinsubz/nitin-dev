@@ -116,13 +116,18 @@ const TimelineItemComponent: React.FC<TimelineItemProps> = ({ data, index }) => 
   );
 };
 
-// 2. TIMELINE PAGE
+// 2. TIMELINE PAGE (with landing section)
 const Timeline: React.FC = () => {
   const { data, loading, error } = useTimelineData();
+  const timelineRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToTimeline = () => {
+    timelineRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-20">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-zinc-400">Loading timeline...</div>
       </div>
     );
@@ -130,7 +135,7 @@ const Timeline: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-20">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center text-red-400">
           Error loading timeline. Please check your Supabase configuration.
         </div>
@@ -139,39 +144,66 @@ const Timeline: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-20 relative">
-      <div className="text-center mb-20 space-y-4">
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-2">
-           Time Travel
-        </h1>
-        <p className="text-zinc-400 text-lg max-w-lg mx-auto">
-          Scroll down to revisit the past. From the chaos of city life back to the simplicity of childhood.
-        </p>
-        <div className="flex justify-center pt-8 animate-bounce text-zinc-600">
-          <ArrowDown size={24} />
+    <div className="relative">
+      {/* Landing Section */}
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl"></div>
         </div>
+
+        {/* Main content */}
+        <div className="relative z-10 text-center max-w-4xl mx-auto">
+          <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 tracking-tight">
+            Hey, I'm <span className="text-emerald-400">Nitin</span>
+          </h1>
+          
+          <p className="text-xl md:text-2xl text-zinc-400 mb-12 font-light">
+            Scroll down to see what I've been up to
+          </p>
+
+          {/* Scroll indicator */}
+          <div className="flex justify-center">
+            <button
+              onClick={scrollToTimeline}
+              className="flex flex-col items-center gap-2 text-zinc-500 hover:text-zinc-300 transition-colors group"
+            >
+              <ArrowDown 
+                size={24} 
+                className="animate-bounce group-hover:animate-none group-hover:translate-y-2 transition-transform" 
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Gradient fade at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-zinc-950 to-transparent pointer-events-none"></div>
       </div>
 
-      {/* The Central Line */}
-      <div className="absolute left-3 md:left-1/2 top-96 bottom-20 w-px bg-gradient-to-b from-zinc-700 via-zinc-800 to-transparent"></div>
+      {/* Timeline Section */}
+      <div ref={timelineRef} className="max-w-4xl mx-auto px-6 -mt-16 pb-20 relative">
+        {/* The Central Line */}
+        <div className="absolute left-3 md:left-1/2 top-0 bottom-20 w-px bg-gradient-to-b from-zinc-700 via-zinc-800 to-transparent"></div>
 
-      <div className="space-y-12">
-        {data.length === 0 ? (
-          <div className="text-center text-zinc-600 py-20">
-            <p>No timeline items yet. Add some in the admin panel!</p>
+        <div className="space-y-12">
+          {data.length === 0 ? (
+            <div className="text-center text-zinc-600 py-20">
+              <p>No timeline items yet. Add some in the admin panel!</p>
+            </div>
+          ) : (
+            data.map((item, index) => (
+              <TimelineItemComponent key={item.id || index} data={item} index={index} />
+            ))
+          )}
+        </div>
+
+        {data.length > 0 && (
+          <div className="text-center mt-32 text-zinc-600 font-mono text-sm">
+            <p>End of recorded history.</p>
           </div>
-        ) : (
-          data.map((item, index) => (
-            <TimelineItemComponent key={item.id || index} data={item} index={index} />
-          ))
         )}
       </div>
-
-      {data.length > 0 && (
-        <div className="text-center mt-32 text-zinc-600 font-mono text-sm">
-          <p>End of recorded history.</p>
-        </div>
-      )}
     </div>
   );
 };

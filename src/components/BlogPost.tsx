@@ -49,7 +49,7 @@ const BlogPost: React.FC = () => {
             onClick={() => navigate('/')}
             className="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors"
           >
-            Go Home
+            Go to Timeline
           </button>
         </div>
       </div>
