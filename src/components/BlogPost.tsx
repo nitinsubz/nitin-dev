@@ -17,6 +17,21 @@ const formatTimelineDate = (dateValue: string): string => {
   }
 };
 
+// Get color classes based on index for systematic color assignment
+const getTimelineColorClasses = (index: number) => {
+  const colorSets = [
+    { dot: 'bg-emerald-500' },
+    { dot: 'bg-blue-500' },
+    { dot: 'bg-purple-500' },
+    { dot: 'bg-cyan-500' },
+    { dot: 'bg-indigo-500' },
+    { dot: 'bg-rose-500' },
+    { dot: 'bg-amber-500' },
+    { dot: 'bg-teal-500' },
+  ];
+  return colorSets[index % colorSets.length];
+};
+
 const BlogPost: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -39,6 +54,8 @@ const BlogPost: React.FC = () => {
   }
 
   const post = data.find((item: TimelineItem) => item.id === id);
+  const postIndex = post ? data.findIndex((item: TimelineItem) => item.id === id) : -1;
+  const colors = postIndex >= 0 ? getTimelineColorClasses(postIndex) : { dot: 'bg-zinc-500' };
 
   if (!post) {
     return (
@@ -78,10 +95,7 @@ const BlogPost: React.FC = () => {
         {/* Header */}
         <header className="mb-12">
           <div className="flex items-center gap-3 mb-4">
-            <div className={`w-3 h-3 rounded-full ${post.color}`}></div>
-            <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-mono rounded border border-zinc-700">
-              #{post.tag}
-            </span>
+            <div className={`w-3 h-3 rounded-full ${colors.dot}`}></div>
             <div className="flex items-center gap-2 text-zinc-500 text-sm">
               <Calendar size={14} />
               <span>{formatTimelineDate(post.dateValue)}</span>

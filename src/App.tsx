@@ -34,6 +34,21 @@ const formatTimelineDate = (dateValue: string): string => {
   }
 };
 
+// Get color classes based on index for systematic color assignment
+const getTimelineColorClasses = (index: number) => {
+  const colorSets = [
+    { border: 'border-emerald-500/30', borderHover: 'hover:border-emerald-500/60', shadow: 'hover:shadow-emerald-500/20', text: 'group-hover:text-emerald-400', borderDivider: 'group-hover:border-emerald-500/30', gradient: 'from-emerald-500/10 via-emerald-400/10 to-emerald-600/10' },
+    { border: 'border-blue-500/30', borderHover: 'hover:border-blue-500/60', shadow: 'hover:shadow-blue-500/20', text: 'group-hover:text-blue-400', borderDivider: 'group-hover:border-blue-500/30', gradient: 'from-blue-500/10 via-blue-400/10 to-blue-600/10' },
+    { border: 'border-purple-500/30', borderHover: 'hover:border-purple-500/60', shadow: 'hover:shadow-purple-500/20', text: 'group-hover:text-purple-400', borderDivider: 'group-hover:border-purple-500/30', gradient: 'from-purple-500/10 via-purple-400/10 to-purple-600/10' },
+    { border: 'border-cyan-500/30', borderHover: 'hover:border-cyan-500/60', shadow: 'hover:shadow-cyan-500/20', text: 'group-hover:text-cyan-400', borderDivider: 'group-hover:border-cyan-500/30', gradient: 'from-cyan-500/10 via-cyan-400/10 to-cyan-600/10' },
+    { border: 'border-indigo-500/30', borderHover: 'hover:border-indigo-500/60', shadow: 'hover:shadow-indigo-500/20', text: 'group-hover:text-indigo-400', borderDivider: 'group-hover:border-indigo-500/30', gradient: 'from-indigo-500/10 via-indigo-400/10 to-indigo-600/10' },
+    { border: 'border-rose-500/30', borderHover: 'hover:border-rose-500/60', shadow: 'hover:shadow-rose-500/20', text: 'group-hover:text-rose-400', borderDivider: 'group-hover:border-rose-500/30', gradient: 'from-rose-500/10 via-rose-400/10 to-rose-600/10' },
+    { border: 'border-amber-500/30', borderHover: 'hover:border-amber-500/60', shadow: 'hover:shadow-amber-500/20', text: 'group-hover:text-amber-400', borderDivider: 'group-hover:border-amber-500/30', gradient: 'from-amber-500/10 via-amber-400/10 to-amber-600/10' },
+    { border: 'border-teal-500/30', borderHover: 'hover:border-teal-500/60', shadow: 'hover:shadow-teal-500/20', text: 'group-hover:text-teal-400', borderDivider: 'group-hover:border-teal-500/30', gradient: 'from-teal-500/10 via-teal-400/10 to-teal-600/10' },
+  ];
+  return colorSets[index % colorSets.length];
+};
+
 // A hook to detect when an element is in view for scroll animations
 const useOnScreen = (ref: React.RefObject<HTMLDivElement>, rootMargin = "0px") => {
   const [isIntersecting, setIntersecting] = useState(false);
@@ -61,6 +76,7 @@ const TimelineItemComponent: React.FC<TimelineItemProps> = ({ data, index }) => 
   const onScreen = useOnScreen(ref, "-100px");
   const navigate = useNavigate();
   const hasMarkdown = data.markdownContent && data.markdownContent.trim().length > 0;
+  const colors = getTimelineColorClasses(index);
 
   const handleClick = () => {
     if (hasMarkdown && data.id) {
@@ -71,16 +87,18 @@ const TimelineItemComponent: React.FC<TimelineItemProps> = ({ data, index }) => 
   return (
     <div 
       ref={ref}
-      className={`relative pl-8 md:pl-0 md:grid md:grid-cols-2 gap-10 mb-16 transition-all duration-1000 ease-out ${
+      className={`relative pl-8 md:pl-0 md:grid md:grid-cols-2 gap-12 mb-20 md:mb-24 transition-all duration-1000 ease-out ${
         onScreen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-20"
       }`}
     >
       {/* The Dot */}
-      <div className="absolute left-0 md:left-1/2 md:-ml-3 w-6 h-6 rounded-full border-4 border-zinc-900 bg-zinc-200 z-10 shadow-[0_0_15px_rgba(255,255,255,0.3)]"></div>
+      <div className="absolute left-0 md:left-1/2 md:-ml-4 w-8 h-8 rounded-full border-4 border-zinc-950 bg-zinc-100 z-10 shadow-[0_0_25px_rgba(255,255,255,0.5),0_0_50px_rgba(255,255,255,0.15),inset_0_0_10px_rgba(255,255,255,0.3)]">
+        <div className="absolute inset-0 rounded-full bg-white/20 blur-sm"></div>
+      </div>
 
       {/* Date (Left Side on Desktop, Hidden/Moved on Mobile) */}
       <div className={`md:text-right md:pr-10 ${index % 2 === 0 ? "md:order-1" : "md:order-2 md:text-left md:pl-10"}`}>
-         <span className="inline-block px-3 py-1 rounded-full bg-zinc-800 text-zinc-400 text-xs font-mono mb-2 border border-zinc-700">
+         <span className="inline-block px-5 py-2.5 rounded-full bg-zinc-950/90 backdrop-blur-md text-zinc-200 text-sm font-mono mb-2 border border-zinc-700/40 shadow-lg shadow-black/30 hover:border-zinc-600/60 hover:text-zinc-100 transition-all duration-300">
             {formatTimelineDate(data.dateValue)}
          </span>
       </div>
@@ -89,27 +107,52 @@ const TimelineItemComponent: React.FC<TimelineItemProps> = ({ data, index }) => 
       <div className={`${index % 2 === 0 ? "md:order-2" : "md:order-1 md:text-right"}`}>
         <div 
           onClick={handleClick}
-          className={`bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-6 rounded-2xl transition-colors group ${
-            hasMarkdown ? 'hover:border-zinc-600 cursor-pointer hover:bg-zinc-900/70' : ''
+          className={`relative overflow-hidden bg-gradient-to-br from-zinc-900/90 via-zinc-950/90 to-zinc-900/90 backdrop-blur-xl border-2 ${colors.border} p-8 md:p-10 rounded-3xl transition-all duration-500 group ${
+            hasMarkdown ? `${colors.borderHover} cursor-pointer hover:bg-gradient-to-br hover:from-zinc-900 hover:via-zinc-950 hover:to-zinc-900 hover:shadow-2xl ${colors.shadow} hover:-translate-y-2 hover:scale-[1.02]` : ''
           }`}
+          style={{
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset',
+          }}
         >
-           <div className={`flex items-center gap-3 mb-2 ${index % 2 !== 0 ? "md:justify-end" : ""}`}>
-              <div className={`w-2 h-2 rounded-full ${data.color}`}></div>
-              <h3 className="text-xl font-bold text-zinc-100">{data.title}</h3>
-           </div>
-           <p className="text-zinc-400 leading-relaxed font-light">
-             {data.content}
-           </p>
-           <div className={`mt-4 flex items-center justify-between ${index % 2 !== 0 ? "md:flex-row-reverse" : ""}`}>
-             <span className="text-xs font-bold uppercase tracking-wider text-zinc-600">
-               #{data.tag}
-             </span>
-             {hasMarkdown && (
-               <span className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">
-                 Read more →
-               </span>
-             )}
-           </div>
+          {/* Animated gradient border effect */}
+          <div className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className={`absolute inset-0 rounded-3xl bg-gradient-to-r ${colors.gradient} blur-xl`}></div>
+          </div>
+          
+          {/* Subtle inner glow */}
+          <div className="absolute inset-[1px] rounded-3xl bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none"></div>
+          
+          {/* Subtle pattern overlay */}
+          <div 
+            className="absolute inset-0 rounded-3xl opacity-[0.015] pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+              backgroundSize: '20px 20px',
+            }}
+          ></div>
+          
+          {/* Content wrapper */}
+          <div className="relative z-10">
+            <div className={`mb-5 ${index % 2 !== 0 ? "md:text-right" : ""}`}>
+              <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight group-hover:text-zinc-50 transition-colors">
+                {data.title}
+              </h3>
+            </div>
+            <p className="text-zinc-300/90 text-base md:text-lg leading-relaxed font-light mb-6 group-hover:text-zinc-200 transition-colors">
+              {data.content}
+            </p>
+            {hasMarkdown && (
+              <div className={`pt-5 border-t border-zinc-800/60 ${colors.borderDivider} transition-colors ${index % 2 !== 0 ? "md:text-right" : ""}`}>
+                <span className={`inline-flex items-center gap-2 text-sm text-zinc-500 ${colors.text} transition-all duration-300 font-medium`}>
+                  <span>Read more</span>
+                  <span className="group-hover:translate-x-1 transition-transform duration-300 inline-block">→</span>
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Corner accent */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/[0.02] to-transparent rounded-bl-full pointer-events-none"></div>
         </div>
       </div>
     </div>

@@ -34,9 +34,7 @@ const AdminPanel: React.FC = () => {
     dateValue: '',
     title: '',
     content: '',
-    markdownContent: '',
-    tag: '',
-    color: 'bg-emerald-500'
+    markdownContent: ''
   });
 
   // Career state
@@ -120,8 +118,6 @@ const AdminPanel: React.FC = () => {
         dateValue: newTimelineItem.dateValue!,
         title: newTimelineItem.title!,
         content: newTimelineItem.content!,
-        tag: newTimelineItem.tag || '',
-        color: newTimelineItem.color || 'bg-emerald-500',
         markdownContent: newTimelineItem.markdownContent || undefined, // Explicitly include
       };
       
@@ -133,7 +129,7 @@ const AdminPanel: React.FC = () => {
       });
       
       await timelineAPI.create(itemToCreate);
-      setNewTimelineItem({ dateValue: '', title: '', content: '', markdownContent: '', tag: '', color: 'bg-emerald-500' });
+      setNewTimelineItem({ dateValue: '', title: '', content: '', markdownContent: '' });
       loadData();
     } catch (error: any) {
       console.error('Error adding timeline item:', error);
@@ -151,8 +147,6 @@ const AdminPanel: React.FC = () => {
           dateValue: item.dateValue,
           title: item.title,
           content: item.content,
-          tag: item.tag,
-          color: item.color,
           // Send a string (never null) to satisfy TS types; empty string clears content
           markdownContent: item.markdownContent ?? '',
         };
@@ -398,27 +392,6 @@ const AdminPanel: React.FC = () => {
                   className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white md:col-span-2 font-mono text-sm"
                   rows={10}
                 />
-                <input
-                  type="text"
-                  placeholder="Tag"
-                  value={newTimelineItem.tag || ''}
-                  onChange={(e) => setNewTimelineItem({ ...newTimelineItem, tag: e.target.value })}
-                  className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
-                />
-                <select
-                  value={newTimelineItem.color || 'bg-emerald-500'}
-                  onChange={(e) => setNewTimelineItem({ ...newTimelineItem, color: e.target.value })}
-                  className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
-                >
-                  <option value="bg-emerald-500">Emerald</option>
-                  <option value="bg-blue-500">Blue</option>
-                  <option value="bg-purple-500">Purple</option>
-                  <option value="bg-yellow-500">Yellow</option>
-                  <option value="bg-indigo-500">Indigo</option>
-                  <option value="bg-cyan-500">Cyan</option>
-                  <option value="bg-orange-500">Orange</option>
-                  <option value="bg-rose-500">Rose</option>
-                </select>
               </div>
               <button
                 onClick={handleAddTimeline}
@@ -537,7 +510,6 @@ const AdminPanel: React.FC = () => {
                           <span className="px-2 py-1 bg-zinc-800 text-zinc-400 text-xs rounded">
                             {item.dateValue ? formatDate(item.dateValue) : 'No date'}
                           </span>
-                          <span className={`w-2 h-2 rounded-full ${item.color}`}></span>
                           <h3 className="text-lg font-bold text-white">{item.title}</h3>
                           {item.markdownContent && (
                             <span className="px-2 py-1 bg-emerald-900/30 text-emerald-400 text-xs rounded border border-emerald-800">
@@ -546,7 +518,6 @@ const AdminPanel: React.FC = () => {
                           )}
                         </div>
                         <p className="text-zinc-400 mb-2">{item.content}</p>
-                        <span className="text-xs text-zinc-600">#{item.tag}</span>
                         {item.markdownContent && (
                           <p className="text-xs text-zinc-500 mt-2">
                             Markdown: {item.markdownContent.length} characters
